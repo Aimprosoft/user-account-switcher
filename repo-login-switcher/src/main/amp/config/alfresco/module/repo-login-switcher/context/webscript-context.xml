@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE beans PUBLIC '-//SPRING//DTD BEAN//EN' 'http://www.springframework.org/dtd/spring-beans.dtd'>
+
+<beans>
+
+	<!--Webscript for getting ticket for admin-->
+	<bean id="webscript.com.switcher.login.login-switcher.get" class="com.switcher.login.webscript.SwitchUserWebScript" parent="webscript">
+		<property name="authenticationService" ref="AuthenticationService" />
+	</bean>
+
+</beans>

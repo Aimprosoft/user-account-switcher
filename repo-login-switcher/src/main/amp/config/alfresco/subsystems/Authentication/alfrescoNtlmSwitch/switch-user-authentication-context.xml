@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- Configure new authentication service -->
+
+    <bean id="localAuthenticationService"
+          class="com.switcher.login.security.authentication.SwitchUserAuthenticationServiceImpl">
+        <property name="authenticationComponent" ref="authenticationComponent"/>
+    </bean>
+
+    <!--Configure authentication component-->
+    <bean id="authenticationComponent" class="org.alfresco.repo.security.authentication.AuthenticationComponentImpl"
+          parent="authenticationComponentBase">
+        <property name="authenticationDao" ref="authenticationDao"/>
+        <property name="authenticationManager" ref="authenticationManager"/>
+        <property name="allowGuestLogin" value="true"/>
+        <property name="nodeService" ref="nodeService"/>
+        <property name="personService" ref="personService"/>
+        <property name="transactionService" ref="transactionService"/>
+        <!--                                                                  -->
+        <!-- A list of default users with admin rights.                       -->
+        <!--                                                                  -->
+        <!-- If the security framework is case sensitive these values should  -->
+        <!-- be case sensitive user names. If the security framework is not   -->
+        <!-- case sensitive these values should be the lower-case user names. -->
+        <!--                                                                  -->
+        <!-- By default this includes:                                        -->
+        <!--    admin (the user name of default alfresco admin user)          -->
+        <!--    administrator (the windows default admin user)                -->
+        <!--                                                                  -->
+        <!-- This assumes that user names are not case sensitive.             -->
+        <!--                                                                  -->
+        <property name="defaultAdministratorUserNames">
+            <set>
+                <value>${alfresco_user_store.adminusername}</value>
+                <value>administrator</value>
+            </set>
+        </property>
+        <!--                                                                  -->
+        <!-- A list of default users acting as guests.                        -->
+        <!--                                                                  -->
+        <!-- By default this includes:                                        -->
+        <!--    guest (the user name of default alfresco guest user)          -->
+        <!--                                                                  -->
+        <!-- This assumes that user names are not case sensitive.             -->
+        <!--                                                                  -->
+        <property name="defaultGuestUserNames">
+            <set>
+                <value>${alfresco_user_store.guestusername}</value>
+            </set>
+        </property>
+    </bean>
+
+</beans>

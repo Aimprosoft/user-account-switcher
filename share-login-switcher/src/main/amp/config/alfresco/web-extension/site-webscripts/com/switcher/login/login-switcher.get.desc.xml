@@ -1,0 +1,10 @@
+<webscript>
+    <shortname>Switch Login</shortname>
+    <description>
+        Login under another user
+    </description>
+    <url>/api/switch-login?u={username}&amp;pw={password?}</url>
+    <format default="json"/>
+    <authentication>admin</authentication>
+    <transaction allow="readwrite">required</transaction>
+</webscript>

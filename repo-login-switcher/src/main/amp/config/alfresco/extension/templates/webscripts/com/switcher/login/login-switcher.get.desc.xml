@@ -1,0 +1,10 @@
+<webscript>
+    <shortname>Login</shortname>
+    <description>
+        Gives admin ticket of another user
+    </description>
+    <url>/api/switch-login?u={username}&amp;pw={password?}</url>
+    <format default="xml"/>
+    <authentication>admin</authentication>
+    <transaction allow="readwrite">required</transaction>
+</webscript>

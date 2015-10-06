@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<!DOCTYPE beans PUBLIC '-//SPRING//DTD BEAN//EN' 'http://www.springframework.org/dtd/spring-beans.dtd'>
+
+<beans>
+
+    <!-- Includes required contexts -->
+	<import resource="classpath:alfresco/module/repo-login-switcher/context/webscript-context.xml" />
+
+</beans>

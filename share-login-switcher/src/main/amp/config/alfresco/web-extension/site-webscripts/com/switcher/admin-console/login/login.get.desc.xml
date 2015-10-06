@@ -1,0 +1,6 @@
+<webscript>
+  <shortname>Admin Console Login</shortname>
+  <description>Login under another user</description>
+  <url>/components/console/login-manager</url>
+  <family>admin-console</family>
+</webscript>
