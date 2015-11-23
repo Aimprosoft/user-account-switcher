@@ -41,13 +41,14 @@
      * @constructor
      */
     Alfresco.ConsoleSwitchUsers = function (htmlId) {
+        this.name = "Alfresco.ConsoleSwitchUsers";
         Alfresco.ConsoleSwitchUsers.superclass.constructor.call(this, htmlId);
 
         /* Register this component */
         Alfresco.util.ComponentManager.register(this);
 
         /* Load YUI Components */
-        Alfresco.util.YUILoaderHelper.require(["button", "container", "datasource", "datatable", "json"], this.onComponentsLoaded, this);
+        Alfresco.util.YUILoaderHelper.require(["button", "container", "datasource", "datatable", "json", "paginator"], this.onComponentsLoaded, this);
 
         /* Define panel handlers */
         var parent = this;
@@ -80,99 +81,86 @@
                  * @method onLoad
                  */
                 onLoad: function onLoad() {
+
                     var me = this;
                     var switchBtnCallBack = function (e, args) {
-
-                        me.onSwitchUserClick(e, args, me);
-
+                        me._onSwitchUserClick(e, args, me);
                     };
 
+                    var searchBtnCallBack = function (e, args) {
+                        me._onSearchButtonClick(e, args)
+                    };
+
+                    var showAllBtnCallBack = function (e, args) {
+                        me._onShowAllButtonClick(e, args)
+                    };
+
+
+                    // UI Buttons
+                    parent.widgets.searchButton = Alfresco.util.createYUIButton(parent, "search-button", searchBtnCallBack);
+                    parent.widgets.searchButton = Alfresco.util.createYUIButton(parent, "show-all-button", showAllBtnCallBack);
                     parent.widgets.switchButton = Alfresco.util.createYUIButton(parent, "switch-button", switchBtnCallBack);
-
-                    // DataTable and DataSource setup
-                    parent.widgets.dataSource = new YAHOO.util.DataSource(Alfresco.constants.PROXY_URI + "api/people",
-                        {
-                            responseType: YAHOO.util.DataSource.TYPE_JSON,
-                            responseSchema: {
-                                resultsList: "people",
-                                metaFields: {
-                                    recordOffset: "startIndex",
-                                    totalRecords: "totalRecords"
-                                }
-                            }
-                        });
-
-                    // Work to be performed after data has been queried but before display by the DataTable
-                    parent.widgets.dataSource.doBeforeParseData = function PeopleFinder_doBeforeParseData(oRequest, oFullResponse) {
-                        var updatedResponse = oFullResponse;
-
-                        if (oFullResponse) {
-                            var items = oFullResponse.people;
-                            var filteredItems = [];
-
-                            // remove GUEST(s)
-                            for (var i = 0; i < items.length; i++) {
-                                if (items[i].userName == "guest" || items[i].userName.indexOf("guest&") == 0 || items[i].userName == Alfresco.constants.USERNAME) {
-                                    items.splice(i, 1);
-                                    i--;
-                                } else if (items[i].enabled == true) {
-                                    filteredItems.push(items[i]);
-                                    me.foundUsers.push(items[i].userName)
-                                }
-                            }
-                            // we need to wrap the array inside a JSON object so the DataTable gets the object it expects
-                            updatedResponse =
-                            {
-                                "people": filteredItems
-                            };
-                        }
-
-                        return updatedResponse;
-                    };
 
                     // Setup the main datatable
                     this._setupDataTable();
 
-                    var successHandler = function ConsoleSwitchUsers__ps_successHandler(sRequest, oResponse, oPayload) {
-
-                        me._setDefaultDataTableErrors(parent.widgets.dataTable);
-                        parent.widgets.dataTable.onDataReturnInitializeTable.call(parent.widgets.dataTable, sRequest, oResponse, oPayload);
-                    };
-
-                    var failureHandler = function ConsoleSwitchUsers__ps_failureHandler(sRequest, oResponse) {
-                        if (oResponse.status == 401) {
-                            // Our session has likely timed-out, so refresh to offer the login page
-                            window.location.reload();
-                        }
-                        else {
-                            try {
-                                var response = YAHOO.lang.JSON.parse(oResponse.responseText);
-                                parent.widgets.dataTable.set("MSG_ERROR", response.message);
-                                parent.widgets.dataTable.showTableMessage(response.message, YAHOO.widget.DataTable.CLASS_ERROR);
-                                me._setResultsMessage("message.noresults");
-                            }
-                            catch (e) {
-                                me._setDefaultDataTableErrors(parent.widgets.dataTable);
-                            }
-                        }
-                    };
-
-                    parent.widgets.dataSource.sendRequest((""),
-                        {
-                            success: successHandler,
-                            failure: failureHandler,
-                            scope: parent
-                        });
 
                 },
 
                 /**
-                 * Setup the YUI DataTable with custom renderers.
+                 * Called by the ConsolePanelHandler when this panel shall be updated
+                 *
+                 * @method onUpdate
+                 */
+                onUpdate: function onUpdate() {
+                    // update the text field - as this event could come from bookmark, navigation or a search button click
+                    var searchTermElem = Dom.get(parent.id + "-search-text");
+                    searchTermElem.value = parent.searchTerm;
+                    parent.widgets.dataTable.deleteRows(0, -1);
+                },
+
+                /**
+                 * Setup the YUI DataTable with custom renderers. todo : refactor this method
                  *
                  * @method _setupDataTable
                  * @private
                  */
                 _setupDataTable: function _setupDataTable() {
+                    var me = this;
+                    // DataTable and DataSource setup
+                    parent.widgets.dataSource = new YAHOO.util.DataSource(Alfresco.constants.PROXY_URI + "api/switch-login/people?");
+                    parent.widgets.dataSource.responseType = YAHOO.util.DataSource.TYPE_JSON;
+                    parent.widgets.dataSource.responseSchema = {
+                        resultsList: 'people',
+                        fields: [
+                            {key: 'userName', parser: "string"},
+                            {key: 'firstName', parser: "string"},
+                            {key: 'lastName', parser: "string"},
+                            {key: 'userGroups', parser: "string"}
+                        ],
+                        metaFields: {
+                            totalRecords: 'totalRecords',
+                            paginationRecordOffset: 'startIndex',
+                            paginationRowsPerPage: 'pageSize',
+                            sortKey: 'sort',
+                            sortDir: 'dir'
+                        }
+                    };
+
+                    // Work to be performed after data has been queried but before display by the DataTable
+                    parent.widgets.dataSource.doBeforeParseData = function PeopleFinder_doBeforeParseData(oRequest, oFullResponse) {
+
+                        if (oFullResponse) {
+                            var items = oFullResponse.people;
+
+                            // Recording found users in temp array
+                            for (var i = 0; i < items.length; i++) {
+                                me.foundUsers.push(items[i].userName)
+                            }
+                        }
+                        return oFullResponse;
+                    };
+
                     /**
                      * DataTable Cell Renderers
                      *
@@ -187,45 +175,199 @@
                         elCell.innerHTML = $html(oData);
                     };
 
-                    // DataTable column defintions
+                    // DataTable column definitions
                     var columnDefinitions =
                         [
                             {
                                 key: "userName",
                                 label: parent._msg("label.username"),
-                                sortable: false,
+                                sortable: true,
                                 formatter: renderCellSafeHTML,
                                 width: 150
+                            },
+                            {
+                                key: "firstName",
+                                label: parent._msg("label.firstname"),
+                                sortable: true,
+                                formatter: renderCellSafeHTML,
+                                width: 200
+                            },
+                            {
+                                key: "lastName",
+                                label: parent._msg("label.lastname"),
+                                sortable: true,
+                                formatter: renderCellSafeHTML,
+                                width: 250
+                            },
+                            {
+                                key: "userGroups",
+                                label: parent._msg("label.groups"),
+                                sortable: false,
+                                formatter: renderCellSafeHTML,
+                                width: 250
                             }
                         ];
+
+                    // Set up the Paginator instance.
+                    var myPaginator = new YAHOO.widget.Paginator({
+                        containers: ['paging'],
+                        rowsPerPage: 10,
+                        rowsPerPageOptions: [10, 25, 50, 100],
+                        template: "<strong>{CurrentPageReport}</strong> {PreviousPageLink} {PageLinks} {NextPageLink} {RowsPerPageDropdown}"
+                    });
+
+                    var handlePagination = function (state, dt) {
+                        var sortedBy = dt.get('sortedBy');
+
+                        var searchTermElem = Dom.get(parent.id + "-search-text");
+                        var searchTerm = YAHOO.lang.trim(searchTermElem.value);
+
+                        // Define the new state
+                        var newState = {
+                            startIndex: state.recordOffset,
+                            sorting: {
+                                key: sortedBy.key,
+                                dir: ((sortedBy.dir === YAHOO.widget.DataTable.CLASS_DESC) ? YAHOO.widget.DataTable.CLASS_DESC : YAHOO.widget.DataTable.CLASS_ASC)
+                            },
+                            pagination: { // Pagination values
+                                recordOffset: state.recordOffset, // Default to first page when sorting
+                                rowsPerPage: dt.get("paginator").getRowsPerPage()
+                            },
+                            searchTerm: searchTerm
+                        };
+
+                        // Create callback object for the request
+                        var oCallback = {
+                            success: dt.onDataReturnSetRows,
+                            failure: dt.onDataReturnSetRows,
+                            scope: dt,
+                            argument: newState // Pass in new state as data payload for callback function to use
+                        };
+
+                        // Send the request
+                        dt.getDataSource().sendRequest(buildQueryString(newState), oCallback);
+                    };
+
+                    var buildQueryString = function (state, dt) {
+                        return "startIndex=" + state.pagination.recordOffset +
+                        "&maxResults=" + state.pagination.rowsPerPage +
+                        "&sortBy=" + state.sorting.key +
+                        "&dir=" + ((state.sorting.dir === YAHOO.widget.DataTable.CLASS_ASC) ? "asc" : "desc") +
+                        "&filter=" + state.searchTerm != null ? state.searchTerm : "";
+                    };
+
+                    var generateRequest = function (oState, oSelf) {
+
+                        parent.widgets.dataTable.deleteRows(parent.widgets.dataTable.getRecordIndex(0), parent.widgets.dataTable.getRecordSet().getLength());
+
+                        var searchTermElem = Dom.get(parent.id + "-search-text");
+                        var searchTerm = YAHOO.lang.trim(searchTermElem.value);
+
+                        // Get states or use defaults
+                        oState = oState || {pagination: null, sortedBy: null};
+                        var sort = encodeURIComponent((oState.sortedBy) ? oState.sortedBy.key : oSelf.getColumnSet().keys[0].getKey());
+                        var dir = (oState.sortedBy && oState.sortedBy.dir === YAHOO.widget.DataTable.CLASS_DESC) ? "desc" : "asc";
+                        var startIndex = (oState.pagination) ? oState.pagination.recordOffset : 0;
+                        var results = (oState.pagination) ? oState.pagination.rowsPerPage : 10;
+
+                        // Build the request
+                        var query = "startIndex=" + startIndex +
+                            "&results=" + results +
+                            "&sortBy=" + sort +
+                            "&dir=" + dir;
+
+                        if (searchTerm != null && searchTerm.length > 0) {
+                            query = query + "&filter=" + encodeURIComponent(searchTerm);
+                        }
+
+                        return query;
+                    };
 
                     // DataTable definition
                     parent.widgets.dataTable = new YAHOO.widget.DataTable(parent.id + "-datatable", columnDefinitions, parent.widgets.dataSource,
                         {
-                            initialLoad: false,
+                            initialLoad: true,
                             selectionMode: "single",
                             renderLoopSize: 32,
                             dynamicData: true,
-                            generateRequest: function (oState, oSelf) {
-
-                                // Set defaults
-                                oState = oState || {pagination: null, sortedBy: null};
-                                var sort = encodeURIComponent((oState.sortedBy) ? oState.sortedBy.key : oSelf.getColumnSet().keys[0].getKey());
-                                var dir = (oState.sortedBy && oState.sortedBy.dir === YAHOO.widget.DataTable.CLASS_DESC) ? "desc" : "asc";
-
-                                // Build the request
-                                var query = "?sortBy=" + sort + "&dir=" + dir;
-
-                                if (parent.searchTerm) {
-                                    query = query + "&filter=" + encodeURIComponent(parent.searchTerm);
-                                }
-
-                                return query;
-                            },
+                            paginator: myPaginator,
+                            paginationSource: " remote",
+                            paginationEventHandler: handlePagination,
+                            initialRequest: "startIndex=0&results=10&sortBy=userName&dir=asc",
+                            generateRequest: generateRequest,
                             MSG_EMPTY: parent._msg("message.empty")
                         });
 
+                    // DataTable row click event handler
                     parent.widgets.dataTable.subscribe("rowClickEvent", this.onUserSelectClick);
+
+                    // DataTable row tooltip
+                    var toolTip = new YAHOO.widget.Tooltip("myTooltip");
+                    var showTimer, hideTimer;
+
+                    // DataTable tooltip event handlers
+                    parent.widgets.dataTable.on('cellMouseoverEvent', function (oArgs) {
+                        if (showTimer) {
+                            window.clearTimeout(showTimer);
+                            showTimer = 0;
+                        }
+
+                        var target = oArgs.target;
+                        var column = this.getColumn(target);
+                        if (column.key == 'userGroups') {
+                            var record = this.getRecord(target);
+                            var description = record.getData('userGroups') || 'no groups';
+                            var xy = [parseInt(oArgs.event.clientX, 10) + 10, parseInt(oArgs.event.clientY, 10) + 10];
+
+                            showTimer = window.setTimeout(function () {
+                                toolTip.setBody(description);
+                                toolTip.cfg.setProperty('xy', xy);
+                                toolTip.show();
+                                hideTimer = window.setTimeout(function () {
+                                    toolTip.hide();
+                                }, 5000);
+                            }, 500);
+                        }
+                    });
+                    parent.widgets.dataTable.on('cellMouseoutEvent', function (oArgs) {
+                        if (showTimer) {
+                            window.clearTimeout(showTimer);
+                            showTimer = 0;
+                        }
+                        if (hideTimer) {
+                            window.clearTimeout(hideTimer);
+                            hideTimer = 0;
+                        }
+                        toolTip.hide();
+                    });
+
+                    // Update payload data on the fly for tight integration with latest values from server
+                    parent.widgets.dataTable.doBeforeLoadData = function (sRequest, oResponse, oPayload) {
+                        parent.widgets.dataTable.deleteRows(0, -1);
+                        var meta = oResponse.meta;
+                        oPayload.totalRecords = meta.totalRecords || oPayload.totalRecords;
+                        oPayload.pagination = {
+                            rowsPerPage: meta.paginationRowsPerPage || 10,
+                            recordOffset: meta.paginationRecordOffset || 0
+                        };
+                        return true;
+                    };
+
+                    // register the "enter" event on the search text field
+                    var searchText = Dom.get(parent.id + "-search-text");
+
+                    new YAHOO.util.KeyListener(searchText,
+                        {
+                            keys: YAHOO.util.KeyListener.KEY.ENTER
+                        },
+                        {
+                            fn: function () {
+                                this._onSearchButtonClick()
+                            },
+                            scope: this,
+                            correctScope: true
+                        }, "keydown").enable();
+
                 },
 
                 /**
@@ -242,6 +384,8 @@
                         this.selectRow(el.target);
                         var recordID = parent.widgets.dataTable.getSelectedRows()[0],
                             record = parent.widgets.dataTable.getRecord(recordID);
+                        parent.removeElementClass('yui-dt-asc');
+                        parent.removeElementClass('yui-dt-desc');
                         Dom.get(parent.id + "-personName").value = record.getData("userName");
                     }
                 },
@@ -249,12 +393,12 @@
                 /**
                  * Switch User event handler
                  *
-                 * @method onSwitchUserClick
+                 * @method _onSwitchUserClick
                  * @param e {object} DomEvent
                  * @param args {array} Event parameters (depends on event type)
                  * @param scope
                  */
-                onSwitchUserClick: function ConsoleSwitchUsers_onSwitchUser(e, args, scope) {
+                _onSwitchUserClick: function ConsoleSwitchUsers_onSwitchUser(e, args, scope) {
                     var me = scope;
                     var userElement = Dom.get(parent.id + "-personName");
                     var userName = YAHOO.lang.trim(userElement.value);
@@ -293,20 +437,67 @@
                     }
                 },
 
-                /**
-                 * Resets the YUI DataTable errors to our custom messages
-                 * NOTE: Scope could be YAHOO.widget.DataTable, so can't use "this"
-                 *
-                 * @method _setDefaultDataTableErrors
-                 * @param dataTable {object} Instance of the DataTable
-                 * @private
-                 */
-                _setDefaultDataTableErrors: function _setDefaultDataTableErrors(dataTable) {
-                    var msg = Alfresco.util.message;
-                    dataTable.set("MSG_EMPTY", parent._msg("message.empty", "Alfresco.ConsoleSwitchUsers"));
-                    dataTable.set("MSG_ERROR", parent._msg("message.error", "Alfresco.ConsoleSwitchUsers"));
+                // search button click event
+                _onSearchButtonClick: function ConsoleSwitchUsers_onSearchButtonClick(e, args) {
+                    var searchTermElem = Dom.get(parent.id + "-search-text");
+                    var searchTerm = YAHOO.lang.trim(searchTermElem.value);
+
+                    // inform the user if the search term entered is too small
+                    if (searchTerm.replace(/\*/g, "").length < parent.options.minSearchTermLength) {
+                        Alfresco.util.PopupManager.displayMessage(
+                            {
+                                text: parent._msg("message.minimum-length", parent.options.minSearchTermLength)
+                            });
+                        return;
+                    }
+
+                    parent.widgets.dataSource.sendRequest(parent._buildSearchParams(searchTerm),
+                        {
+                            success: this.successHandler,
+                            failure: this.failureHandler,
+                            scope: parent,
+                            argument: parent.widgets.dataTable.getState()
+                        });
                 },
 
+                // search all users button click event
+                _onShowAllButtonClick: function ConsoleSwitchUsers_onShowAllButtonClick(e, args) {
+                    // clear search field
+                    Dom.get(parent.id + "-search-text").value = "";
+
+                    // Send the query to the server
+                    // ... with hint to use CQ for user admin page (note: passed via searchTerm in lieu of a change in the /api/people API)
+                    parent.widgets.dataSource.sendRequest(parent._buildSearchParams(""),
+                        {
+                            success: this.successHandler,
+                            failure: this.failureHandler,
+                            scope: parent,
+                            argument: parent.widgets.dataTable.getState()
+                        });
+                },
+
+                successHandler: function ConsoleSwitchUsers__ps_successHandler(sRequest, oResponse, oPayload) {
+                    this._setDefaultDataTableErrors(parent.widgets.dataTable);
+                    parent.widgets.dataTable.onDataReturnInitializeTable.call(parent.widgets.dataTable, sRequest, oResponse, oPayload);
+                },
+
+                failureHandler: function ConsoleSwitchUsers__ps_failureHandler(sRequest, oResponse) {
+                    if (oResponse.status == 401) {
+                        // Our session has likely timed-out, so refresh to offer the login page
+                        window.location.reload();
+                    }
+                    else {
+                        try {
+                            var response = YAHOO.lang.JSON.parse(oResponse.responseText);
+                            parent.widgets.dataTable.set("MSG_ERROR", response.message);
+                            parent.widgets.dataTable.showTableMessage(response.message, YAHOO.widget.DataTable.CLASS_ERROR);
+                            this._setResultsMessage("message.noresults");
+                        }
+                        catch (e) {
+                            this._setDefaultDataTableErrors(parent.widgets.dataTable);
+                        }
+                    }
+                }
             });
         new ViewPanelHandler();
         return this;
@@ -314,7 +505,32 @@
 
     YAHOO.extend(Alfresco.ConsoleSwitchUsers, Alfresco.ConsoleTool,
         {
+            /**
+             * Object container for initialization options
+             *
+             * @property options
+             * @type object
+             */
+            options: {
+                /**
+                 * Number of characters required for a search.
+                 *
+                 * @property minSearchTermLength
+                 * @type int
+                 * @default 1
+                 */
+                minSearchTermLength: 1,
 
+                /**
+                 * Maximum number of items to display in the results list
+                 *
+                 * @property maxSearchResults
+                 * @type int
+                 * @default 100
+                 */
+                maxSearchResults: 10
+            },
+            searchTerm: undefined,
             /**
              * Fired by YUI when parent element is available for scripting.
              * Component initialisation, including instantiation of YUI widgets and event listener binding.
@@ -331,6 +547,52 @@
              * PRIVATE FUNCTIONS
              */
 
+            /**
+             * Resets the YUI DataTable errors to our custom messages
+             * NOTE: Scope could be YAHOO.widget.DataTable, so can't use "this"
+             *
+             * @method _setDefaultDataTableErrors
+             * @param dataTable {object} Instance of the DataTable
+             * @private
+             */
+            _setDefaultDataTableErrors: function _setDefaultDataTableErrors(dataTable) {
+                var msg = Alfresco.util.message;
+                dataTable.set("MSG_EMPTY", this._msg("message.empty", "Alfresco.ConsoleSwitchUsers"));
+                dataTable.set("MSG_ERROR", this._msg("message.error", "Alfresco.ConsoleSwitchUsers"));
+            },
+
+            /**
+             * Set the message in the Results Bar area
+             *
+             * @method _setResultsMessage
+             * @param messageId {string} The messageId to display
+             * @private
+             */
+            _setResultsMessage: function _setResultsMessage(messageId, arg1, arg2) {
+                var resultsDiv = Dom.get(this.id + "-search-bar");
+                resultsDiv.innerHTML = this._msg(messageId, arg1, arg2);
+            },
+
+            /**
+             * Build URI parameters for People List JSON data webscript
+             *
+             * @method _buildSearchParams
+             * @param searchTerm {string} User search term
+             * @private
+             */
+            _buildSearchParams: function _buildSearchParams(searchTerm) {
+                return "filter=" + encodeURIComponent(searchTerm) +
+                    "&startIndex=0&results=10&sortBy=userName&dir=asc";
+            },
+
+            removeElementClass: function removeElementClass(className) {
+                var els = Dom.getElementsByClassName(className, "td"),
+                    i = 0;
+
+                for (i; i < els.length; i++) {
+                    Dom.removeClass(els[i], className);
+                }
+            },
             /**
              * Gets a custom message
              *

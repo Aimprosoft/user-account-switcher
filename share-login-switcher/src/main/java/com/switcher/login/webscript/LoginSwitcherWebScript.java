@@ -104,7 +104,7 @@ public class LoginSwitcherWebScript extends DeclarativeWebScript {
                 logger.debug("The user " + user + " is set in the session.");
 
                 // remove admin info from session
-                session.removeAttribute("_alf_USER_GROUPS");
+                session.setAttribute("_alf_USER_GROUPS", "");
                 session.removeAttribute(UserFactory.SESSION_ATTRIBUTE_KEY_USER_OBJECT);
                 logger.debug("Admin user was removed from session.");
 
