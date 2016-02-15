@@ -16,9 +16,13 @@ import org.alfresco.repo.security.authentication.AuthenticationException;
 import org.alfresco.repo.security.authentication.AuthenticationUtil;
 import org.alfresco.repo.transaction.AlfrescoTransactionSupport;
 import org.alfresco.service.cmr.security.AuthenticationService;
+import org.alfresco.service.cmr.security.AuthorityService;
+import org.alfresco.service.cmr.security.AuthorityType;
 import org.alfresco.util.EqualsHelper;
 import org.alfresco.util.GUID;
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +37,12 @@ import java.util.Set;
 public class SwitchUserAuthenticationServiceImpl implements AuthenticationService {
 
     private AuthenticationComponent authenticationComponent;
+
+    private static final Logger logger = LogManager.getLogger(SwitchUserAuthenticationServiceImpl.class);
+
+    private static final String NAME_GROUP_ALFRESCO_ADMINISTRATORS = "GROUP_ALFRESCO_ADMINISTRATORS";
+
+    private AuthorityService authorityService;
 
     private Map<String, String> userToTicket = new HashMap<>();
 
@@ -333,8 +343,20 @@ public class SwitchUserAuthenticationServiceImpl implements AuthenticationServic
         final String currentUser = AuthenticationUtil.getFullyAuthenticatedUser() == null ?
                 (String) AlfrescoTransactionSupport.getResource("currentUser") : AuthenticationUtil.getFullyAuthenticatedUser();
 
+        logger.debug("--- Current user: " + currentUser);
+
+        // if current user is Admin (in group "GROUP_ALFRESCO_ADMINISTRATORS") - true, else - false
+        boolean isAdmin = AuthenticationUtil.runAsSystem(new AuthenticationUtil.RunAsWork<Boolean>() {
+            @Override
+            public Boolean doWork() throws Exception {
+                return authorityService.getContainedAuthorities(AuthorityType.USER, NAME_GROUP_ALFRESCO_ADMINISTRATORS, true).contains(currentUser);
+            }
+        });
+
+        logger.debug("--- Current user is admin (in group " + NAME_GROUP_ALFRESCO_ADMINISTRATORS + "): " + isAdmin);
+
         // authenticate admin as selected user
-        if (StringUtils.isNotBlank(currentUser) && AuthenticationUtil.getAdminUserName().equals(currentUser)) {
+        if (StringUtils.isNotBlank(currentUser) && isAdmin) {
 
             setCurrentUser(userName);
 
@@ -353,6 +375,10 @@ public class SwitchUserAuthenticationServiceImpl implements AuthenticationServic
      * */
     public void setAuthenticationComponent(AuthenticationComponent authenticationComponent) {
         this.authenticationComponent = authenticationComponent;
+    }
+
+    public void setAuthorityService(AuthorityService authorityService) {
+        this.authorityService = authorityService;
     }
 
 }

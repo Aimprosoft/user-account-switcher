@@ -101,6 +101,9 @@
                     parent.widgets.searchButton = Alfresco.util.createYUIButton(parent, "show-all-button", showAllBtnCallBack);
                     parent.widgets.switchButton = Alfresco.util.createYUIButton(parent, "switch-button", switchBtnCallBack);
 
+                    // disable switch button
+                    Alfresco.util.disableYUIButton(parent.widgets.switchButton);
+
                     // Setup the main datatable
                     this._setupDataTable();
 
@@ -158,6 +161,8 @@
                                 me.foundUsers.push(items[i].userName)
                             }
                         }
+                        // disable switch button
+                        Alfresco.util.disableYUIButton(parent.widgets.switchButton);
                         return oFullResponse;
                     };
 
@@ -386,6 +391,9 @@
                             record = parent.widgets.dataTable.getRecord(recordID);
                         parent.removeElementClass('yui-dt-asc');
                         parent.removeElementClass('yui-dt-desc');
+                        if (record.getData("userName") != null)
+                            // enable switch button
+                            Alfresco.util.enableYUIButton(parent.widgets.switchButton);
                         Dom.get(parent.id + "-personName").value = record.getData("userName");
                     }
                 },
