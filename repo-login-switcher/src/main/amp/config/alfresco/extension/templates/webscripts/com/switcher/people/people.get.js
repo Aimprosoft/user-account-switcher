@@ -1,13 +1,13 @@
 // Get the args
 var sort = args ["sortBy"] == null ? "userName" : args["sortBy"];
-var sortField = "@cm:" + sort;
+var sortField = "@cm\\:" + sort;
 var searchTerm = args["filter"];
 var skipCount = args["startIndex"] == null ? 0 : args["startIndex"];
 var sortAsc = args["dir"] != "desc";
 var itemCount = args["results"] == null ? 10 : args["results"];
 
 // search all enabled users of alfresco
-var query = "+TYPE:\"cm:person\" and -ASPECT:\"cm:personDisabled\"" + ((searchTerm != null && searchTerm.length > 0) ? " +@cm\\:username:\"*" + searchTerm + "*\" hint:useCQ" : "");
+var query = "+TYPE:\"cm:person\" AND -ASPECT:\"cm:personDisabled\"" + ((searchTerm != null && searchTerm.length > 0) ? " +@cm\\:username:\"*" + searchTerm + "*\" hint:useCQ" : "");
 
 // search users
 var results = search.luceneSearch(query, sortField, sortAsc);

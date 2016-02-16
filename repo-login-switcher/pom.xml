@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>repo-login-switcher</artifactId>
+    <version>1.5-SNAPSHOT</version>
     <name>Alfresco User Switcher</name>
     <packaging>amp</packaging>
     <description>This is a sample Alfresco repository AMP project, depended upon by the alfresco WAR aggregator</description>
@@ -11,59 +13,357 @@
         <artifactId>login</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    
+
     <properties>
-        <!-- Property overrides are mostly done in parent pom -->
+        <!-- Defines the alfresco edition to compile against. Allowed values are [org.alfresco|org.alfresco.enterprise]-->
+        <alfresco.groupId>org.alfresco</alfresco.groupId>
+        <!-- Defines the alfresco version to compile against -->
+        <alfresco.version>4.2.f</alfresco.version>
+        <app.log.root.level>WARN</app.log.root.level>
+        <alfresco.data.location>alf_data_dev</alfresco.data.location>
+        <!-- Defines the target WAR artifactId to run this amp, only used with the -Pamp-to-war switch
+        .    | Allowed values: alfresco | share. Defaults to a repository AMP, but could point to your foundation WAR -->
+        <alfresco.client.war>alfresco</alfresco.client.war>
+        <!-- Defines the target WAR groupId to run this amp, only used with the -Pamp-to-war switch
+        .    | Could be org.alfresco | org.alfresco.enterprise or your corporate groupId -->
+        <alfresco.client.war.groupId>org.alfresco</alfresco.client.war.groupId>
+        <!-- Defines the target WAR version to run this amp, only used with the -Pamp-to-war switch -->
+        <alfresco.client.war.version>4.2.f</alfresco.client.war.version>
+        <!-- This controls which properties will be picked in src/test/properties for embedded run -->
+        <env>local</env>
+        <spring.version>3.2.5.RELEASE</spring.version>
+        <spring.extensions.version>5.0.d</spring.extensions.version>
+        <!--<buildnumber>SNAPSHOT</buildnumber>-->
+        <oval.version>1.85</oval.version>
+        <groovy.version>2.4.5</groovy.version>
     </properties>
 
-    <!-- Following dependencies are needed for compiling Java code in src/main/java;
-          <scope>provided</scope> is inherited for each of the following;
-          for more info, please refer to alfresco-platform-distribution POM -->
+
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- This will import the dependencyManagement for all artifacts in the selected Alfresco plaftorm
+                 (see http://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html#Importing_Dependencies)
+                 NOTE: You still need to define dependencies in your POM, but you can omit version as it's enforced by this dependencyManagement.
+                 NOTE: It defaults to the latest version this SDK pom has been tested with, but alfresco version can/should be overridden in your project's pom
+             -->
+            <dependency>
+                <groupId>${alfresco.groupId}</groupId>
+                <artifactId>alfresco-platform-distribution</artifactId>
+                <version>${alfresco.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
     <dependencies>
+
+        <!-- Test dependencies -->
         <dependency>
-            <groupId>${alfresco.groupId}</groupId>
-            <artifactId>alfresco-repository</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${alfresco.groupId}</groupId>
-            <artifactId>alfresco-web-client</artifactId>
-            <version>4.2.f</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.1</version>
+            <scope>test</scope>
         </dependency>
 
-        <!-- Uncomment if you are using RM (Records Management) module, brings in RM related classes -->
-        <!--
         <dependency>
-            <groupId>${alfresco.groupId}</groupId>
-            <artifactId>alfresco-rm</artifactId>
-            <version>${alfresco.rm.version}</version>
-            <classifier>classes</classifier>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-core</artifactId>
+            <version>${alfresco.version}</version>
+            <scope>provided</scope>
         </dependency>
-        -->
+
+        <dependency>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-repository</artifactId>
+            <version>${alfresco.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-data-model</artifactId>
+            <version>${alfresco.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>acegisecurity</groupId>
+            <artifactId>acegi-security</artifactId>
+            <version>0.8.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-web-client</artifactId>
+            <version>${alfresco.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.alfresco</groupId>
+                    <artifactId>alfresco-web-framework-commons</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-web-framework-commons</artifactId>
+            <version>${alfresco.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-share</artifactId>
+            <version>${alfresco.version}</version>
+            <!-- This is bug: https://issues.alfresco.com/jira/browse/ALF/component/12681 -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.alfresco</groupId>
+                    <artifactId>alfresco-web-framework-commons</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-remote-api</artifactId>
+            <version>${alfresco.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.extensions.surf</groupId>
+            <artifactId>spring-webscripts</artifactId>
+            <scope>provided</scope>
+            <version>${spring.extensions.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.extensions.surf</groupId>
+            <artifactId>spring-surf</artifactId>
+            <scope>provided</scope>
+            <version>${spring.extensions.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>org.springframework.core</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>org.springframework.context</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>org.springframework.beans</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>org.springframework.web.servlet</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>2.4.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>com.springsource.org.apache.lucene.search.highlight</artifactId>
+            <version>2.4.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.quartz-scheduler</groupId>
+            <artifactId>quartz</artifactId>
+            <version>1.8.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.sf.oval</groupId>
+            <artifactId>oval</artifactId>
+            <version>${oval.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <version>${groovy.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.4</version>
+        </dependency>
+
+
     </dependencies>
 
+    <repositories>
+        <repository>
+            <id>nexus</id>
+            <url>https://maven.alfresco.com/nexus/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>alfresco-public</id>
+            <url>https://artifacts.alfresco.com/nexus/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>alfresco-public-snapshots</id>
+            <url>https://artifacts.alfresco.com/nexus/content/groups/public-snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>maven.org</id>
+            <name>maven.org</name>
+            <url>http://repo1.maven.org/maven2</url>
+        </repository>
+    </repositories>
+
+    <build>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-war-plugin</artifactId>
+                    <configuration>
+                        <!--  Here is can control the order of overlay of your (WAR, AMP, etc.) dependencies
+                            | NOTE: At least one WAR dependency must be uncompressed first
+                            | NOTE: In order to have a dependency effectively added to the WAR you need to
+                            | explicitly mention it in the overlay section.
+                            | NOTE: First-win resource strategy is used by the WAR plugin
+                             -->
+                        <overlays>
+                            <!-- Current project customizations -->
+                            <overlay/>
+                            <!-- The Alfresco WAR -->
+                            <overlay>
+                                <groupId>${alfresco.groupId}</groupId>
+                                <artifactId>alfresco</artifactId>
+                                <type>war</type>
+                                <!-- To allow inclusion of META-INF -->
+                                <excludes/>
+                            </overlay>
+                            <!-- Add / order your AMPs here -->
+                            <overlay>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>amp</artifactId>
+                                <type>amp</type>
+                            </overlay>
+                            <overlay>
+                                <groupId>${alfresco.groupId}</groupId>
+                                <artifactId>alfresco-spp</artifactId>
+                                <type>amp</type>
+                            </overlay>
+                        </overlays>
+                    </configuration>
+                </plugin>
+            </plugins>
+        <!--<finalName>${project.artifactId}-${project.version}</finalName>-->
+        <!--<plugins>
+            &lt;!&ndash; Patched alfresco files must be moved to alfresco.war for load as high priority classes  &ndash;&gt;
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.1</version>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                &lt;!&ndash;<move todir="${project.build.directory}/${project.artifactId}-${project.version}/config/org/alfresco">&ndash;&gt;
+                                <move todir="${project.build.directory}/${project.artifactId}/config/org/alfresco">
+                                    <fileset dir="${project.build.directory}/classes/org/alfresco"/>
+                                </move>
+                                <move todir="${project.build.directory}/${project.artifactId}/config/org/apache">
+                                    <fileset dir="${project.build.directory}/classes/org/apache"/>
+                                </move>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>-->
+    </build>
+
+
     <profiles>
-
-        <!--
-            Brings in the extra Enterprise specific repository classes,
-            if the 'enterprise' profile has been activated, needs to be activated manually. -->
-        <profile>
-            <id>enterprise</id>
-            <dependencies>
-                <dependency>
-                    <groupId>${alfresco.groupId}</groupId>
-                    <artifactId>alfresco-enterprise-repository</artifactId>
-                    <version>${alfresco.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <!-- If we are running in embedded Tomcat skip unit tests -->
+        <!-- Overrides the run profile to disable securecomms -->
         <profile>
             <id>run</id>
-            <properties>
-                <skipTests>true</skipTests>
-            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>prepare-exploded-war</id>
+                                <goals>
+                                    <goal>exploded</goal>
+                                </goals>
+                                <phase>prepare-package</phase>
+                            </execution>
+                            <execution>
+                                <id>default-war</id>
+                                <configuration>
+                                    <webXml>${project.build.directory}/${project.build.finalName}-nossl/WEB-INF/web.xml</webXml>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Replaces web.xml where applicable, commenting out the security-constraints -->
+                    <plugin>
+                        <groupId>com.google.code.maven-replacer-plugin</groupId>
+                        <artifactId>replacer</artifactId>
+                        <executions>
+                            <execution>
+                                <id>disable-securecomms</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>replace</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <ignoreErrors>true</ignoreErrors>
+                            <file>${project.build.directory}/${project.build.finalName}/WEB-INF/web.xml</file>
+                            <outputDir>${project.build.directory}/${project.build.finalName}-nossl/WEB-INF/</outputDir>
+                            <preserveDir>false</preserveDir>
+                            <replacements>
+                                <replacement>
+                                    <token><![CDATA[<!-- Toggle securecomms placeholder start -->]]></token>
+                                    <value><![CDATA[<!--]]></value>
+                                </replacement>
+                                <replacement>
+                                    <token><![CDATA[<!-- Toggle securecomms placeholder end -->]]></token>
+                                    <value><![CDATA[-->]]></value>
+                                </replacement>
+                            </replacements>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
+
 </project>
