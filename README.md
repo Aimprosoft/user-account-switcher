@@ -12,3 +12,6 @@ Additional page on administration tools page. Allows user with admin permissions
   * {alfresco_installation_folder}/bin/apply_amps.sh for linux
   * {alfresco_installation_folder}/bin/apply_amps.bat for windows
 - Start alfresco
+
+# **Fork**
+We added new branch (master-4.2.f) adapted for alfresco 4.2.f
