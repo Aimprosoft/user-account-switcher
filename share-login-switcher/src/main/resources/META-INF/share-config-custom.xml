@@ -1,0 +1,44 @@
+<!-- Share configuration related to this particular Share module extension, such as:
+     - Doclib action config
+     - Form config
+     - Aspect and Type config
+     - Advanced Search
+
+    Note. Any configuration related to the whole Share.war webapp
+           (i.e. not specific to this share extension) should be
+            placed in the environment specific config file:
+             alfresco/tomcat/shared/classes/alfresco/web-extension/share-config-custom.xml
+     -->
+<alfresco-config>
+    <!--================================================================================================================
+        Make custom types and aspects visible in "Change Type" and "Manage Aspects" actions.
+         This will also make them visible when creating rules.
+        (will be merged with out-of-the-box configured types and aspects)
+    =============================================================================================================-->
+
+
+    <!--================================================================================================================
+          Advanced Search Forms for types
+          (search forms for aspects are not available)
+      =============================================================================================================-->
+
+    <!--================================================================================================================
+         View, Edit, Create, and Search forms for custom types
+
+         The following form configurations for the custom types
+         have not been created from scratch. We have instead copied
+         out-of-the-box form configurations for cm:content and cm:folder
+         from the tomcat/webapps/share/WEB-INF/classes/alfresco/share-form-config.xml file
+         in a standard Alfresco installation (with the version matching)
+         and used them as a starting point.
+
+        =============================================================================================================-->
+
+    <!-- __________________________________ custom base type _________________________________________________-->
+
+    <!-- View and Edit forms for custom type -->
+
+    <!-- Create and search forms for custom type -->
+
+
+</alfresco-config>

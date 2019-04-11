@@ -2,68 +2,37 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>repo-login-switcher</artifactId>
-    <name>Alfresco User Switcher</name>
-    <packaging>amp</packaging>
-    <description>This is a sample Alfresco repository AMP project, depended upon by the alfresco WAR aggregator</description>
+    <name>Alfresco Platform/Repository JAR Module</name>
+    <description>Platform/Repo JAR Module (to be included in the alfresco.war) - part of AIO - SDK 3
+    </description>
+    <packaging>jar</packaging>
 
     <parent>
         <groupId>com.switcher</groupId>
         <artifactId>login</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.5</version>
     </parent>
-    
+
     <properties>
-        <!-- Property overrides are mostly done in parent pom -->
     </properties>
 
-    <!-- Following dependencies are needed for compiling Java code in src/main/java;
-          <scope>provided</scope> is inherited for each of the following;
-          for more info, please refer to alfresco-platform-distribution POM -->
     <dependencies>
         <dependency>
-            <groupId>${alfresco.groupId}</groupId>
-            <artifactId>alfresco-repository</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${alfresco.groupId}</groupId>
-            <artifactId>alfresco-web-client</artifactId>
-            <version>4.2.f</version>
+            <groupId>org.alfresco.surf</groupId>
+            <artifactId>spring-surf</artifactId>
+            <scope>provided</scope>
+            <version>${alfresco.surf.version}</version>
         </dependency>
 
-        <!-- Uncomment if you are using RM (Records Management) module, brings in RM related classes -->
-        <!--
-        <dependency>
-            <groupId>${alfresco.groupId}</groupId>
-            <artifactId>alfresco-rm</artifactId>
-            <version>${alfresco.rm.version}</version>
-            <classifier>classes</classifier>
-        </dependency>
-        -->
     </dependencies>
 
-    <profiles>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
-        <!--
-            Brings in the extra Enterprise specific repository classes,
-            if the 'enterprise' profile has been activated, needs to be activated manually. -->
-        <profile>
-            <id>enterprise</id>
-            <dependencies>
-                <dependency>
-                    <groupId>${alfresco.groupId}</groupId>
-                    <artifactId>alfresco-enterprise-repository</artifactId>
-                    <version>${alfresco.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <!-- If we are running in embedded Tomcat skip unit tests -->
-        <profile>
-            <id>run</id>
-            <properties>
-                <skipTests>true</skipTests>
-            </properties>
-        </profile>
-    </profiles>
 </project>
