@@ -102,5 +102,66 @@ in:
  
  ![alt text](readme-img/other_user.png)
  
-## License
+## How to use plugin with Alfresco Content Service Enterprise
+ 
+ * Open the directory in which you downloaded docker-compose.yml file and create two packages repo and share.
+ * Copy _repo-login-switcher-1.5.jar_ to _your-alfresco-enterprise/repo_.
+ * Copy _share-login-switcher-1.5.jar_ to _your-alfresco-enterprise/share_.
+ * Create Dockerfile in _your-alfresco-enterprise/repo_:
+ 
+```
+FROM alfresco/alfresco-content-repository:6.1.0
+
+ARG TOMCAT_DIR=/usr/local/tomcat
+
+COPY *.jar $TOMCAT_DIR/webapps/alfresco/WEB-INF/lib/
+
+``` 
+
+ * Create Dockerfile in _your-alfresco-enterprise/share_:
+ 
+```
+FROM alfresco/alfresco-share:6.1.0
+
+ARG TOMCAT_DIR=/usr/local/tomcat
+
+COPY *.jar $TOMCAT_DIR/webapps/share/WEB-INF/lib/
+
+```
+
+ * In docker-compose.yml replace:
+ 
+```
+ alfresco:
+         image: alfresco/alfresco-content-repository:6.1.0
+```
+
+ with:
+ 
+```         
+ alfresco:
+         build: ./repo
+``` 
+
+and
+
+```
+ share:
+         image: alfresco/alfresco-share:6.1.0
+```
+ 
+ with:
+ 
+```
+ share:
+         build: ./share
+```
+ 
+ * Run Alfresco:
+ 
+```bash
+ docker-compose up
+```
+ 
+ ## License
 This project is licensed under the [Apache 2.0](https://choosealicense.com/licenses/apache-2.0/) License - see the LICENSE file for details.
