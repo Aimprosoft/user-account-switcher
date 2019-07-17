@@ -25,6 +25,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.springframework.extensions.webscripts.*;
 
+import com.switcher.login.security.authentication.SwitchUserAuthenticationServiceImpl;
+
 import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,7 +68,7 @@ public class SwitchUserWebScript extends DeclarativeWebScript {
 
         try {
             // save current user for future use by @see com.switcher.login.security.authentication.SwitchUserAuthenticationServiceImpl.authenticate
-            AlfrescoTransactionSupport.bindResource("currentUser", AuthenticationUtil.getRunAsUser());
+            AlfrescoTransactionSupport.bindResource(SwitchUserAuthenticationServiceImpl.CURRENT_USER_KEY, AuthenticationUtil.getRunAsUser());
             // get ticket
             authenticationService.authenticate(username, password.toCharArray());
 

@@ -22,7 +22,6 @@
 
     <bean id="localAuthenticationService"
           class="com.switcher.login.security.authentication.SwitchUserAuthenticationServiceImpl">
-        <property name="authenticationComponent" ref="authenticationComponent"/>
         <property name="authorityService" ref="AuthorityService"/>
     </bean>
 

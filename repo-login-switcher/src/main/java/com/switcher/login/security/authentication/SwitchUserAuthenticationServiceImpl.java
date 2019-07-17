@@ -39,6 +39,9 @@ import org.alfresco.util.GUID;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,7 +53,9 @@ import java.util.Set;
  *  <p>
  *  Generation of ticket processed without providing password of the given user.
  * */
-public class SwitchUserAuthenticationServiceImpl implements AuthenticationService {
+public class SwitchUserAuthenticationServiceImpl implements AuthenticationService, ApplicationContextAware {
+
+    public static final String CURRENT_USER_KEY = "SwitchUserAuthenticationService.currentUser";
 
     private AuthenticationComponent authenticationComponent;
 
@@ -357,7 +362,7 @@ public class SwitchUserAuthenticationServiceImpl implements AuthenticationServic
 
         // retrieve current user
         final String currentUser = AuthenticationUtil.getFullyAuthenticatedUser() == null ?
-                (String) AlfrescoTransactionSupport.getResource("currentUser") : AuthenticationUtil.getFullyAuthenticatedUser();
+                (String) AlfrescoTransactionSupport.getResource(CURRENT_USER_KEY) : AuthenticationUtil.getFullyAuthenticatedUser();
 
         logger.debug("--- Current user: " + currentUser);
 
@@ -385,12 +390,13 @@ public class SwitchUserAuthenticationServiceImpl implements AuthenticationServic
     }
 
     /**
-     *  Sets the authentication component
-     *
-     *  @param authenticationComponent the authenticationComponent to set
-     * */
-    public void setAuthenticationComponent(AuthenticationComponent authenticationComponent) {
-        this.authenticationComponent = authenticationComponent;
+     * Need to use global authenticationComponent instead of the local in order to access LDAP synchronized users.
+     * The local authenticationComponent only handled the local users managed by alfrescoNtlm.
+     * The global authenticationComponent iterate on all declared subsystems to find the user.
+     */
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+    	authenticationComponent = (AuthenticationComponent) applicationContext.getParent().getBean("authenticationComponent");
     }
 
     public void setAuthorityService(AuthorityService authorityService) {
